@@ -1,3 +1,4 @@
+from influxdb_client.client.write_api import SYNCHRONOUS
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 #
 from src.config import (
@@ -16,16 +17,23 @@ class InfluxDBHandler:
             token=INFLUX_DB_TOKEN,
             org=INFLUX_DB_ORG
         )
-        self.write_api = self.client.write_api()
+        self.write_api = self.client.write_api(write_options=SYNCHRONOUS)
+        
+        # Validate connection immediately
+        self.client.ping()
 
     def __enter__(self):
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
         self.close()
 
-    def write_weather_point(self, location:str, fields:dict, timestamp=None) -> None:
-        point = Point("weather").tag("location", location)
+    def write_weather_point(self, measurement:str, tags:dict, fields:dict, timestamp=None) -> None:
+        """Write weather-point."""
+        point = Point(measurement)
+        
+        for k, v in tags.items():
+            point = point.tag(k, v)
 
         for k, v in fields.items():
             point = point.field(k, v)

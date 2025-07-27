@@ -1,4 +1,6 @@
 venv
 .venv
 .env
-
+/data
+docker-compose.yaml
+__pycache__/

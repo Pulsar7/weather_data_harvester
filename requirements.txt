@@ -1,2 +1,4 @@
-dotenv
-influxdb-client
+python-dotenv==1.1.1
+influxdb-client==1.49.0
+requests==2.32.4
+pytz==2025.2
