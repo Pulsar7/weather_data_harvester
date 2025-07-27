@@ -11,7 +11,6 @@ from influxdb_client.rest import ApiException
 #
 import src.utils as utils
 from src.db_handler import InfluxDBHandler
-from src.config import INFLUX_DB_MEASUREMENT_NAME
 from src.custom_exceptions import InfluxDBInitError
 
 def get_weather_data() -> dict|None:
