@@ -63,24 +63,77 @@ def add_data_to_db(weather_data:dict) -> bool:
                 "weather_main_text": weather_data['weather_main_text'],
                 "weather_data_source": weather_data['weather_data_src_url']
             }
-
-            # Remove non-field values
-            fields:dict = {k: v for k, v in weather_data.items() if k not in tags and k != "timestamp"}
-
-            # Write data point
+            
+            # Write temperature-related fields
             db.write_weather_point(
-                measurement=INFLUX_DB_MEASUREMENT_NAME,
+                measurement="temperature",
                 tags=tags,
-                fields=fields,
+                fields={
+                    "temperature_real": weather_data["temperature_real"],
+                    "temperature_min": weather_data["temperature_min"],
+                    "temperature_max": weather_data["temperature_max"],
+                    "temperature_feels_like": weather_data["temperature_feels_like"],
+                },
                 timestamp=weather_data['timestamp']
             )
-            logging.debug(f"Stored data in InfluxDB: timestamp='{weather_data['timestamp']}'; {len(tags)} tags; {len(fields)} fields")
+
+            # Write humidity and pressure related fields
+            db.write_weather_point(
+                measurement="atmosphere",
+                tags=tags,
+                fields={
+                    "humidity": weather_data["humidity"],
+                    "pressure": weather_data["pressure"],
+                    "sea_level": weather_data.get("sea_level"), 
+                    "ground_level": weather_data.get("ground_level"),
+                },
+                timestamp=weather_data['timestamp']
+            )
+
+            # Write wind related fields
+            db.write_weather_point(
+                measurement="wind",
+                tags=tags,
+                fields={
+                    "wind_speed": weather_data["wind_speed"],
+                    "wind_degree": weather_data["wind_degree"],
+                },
+                timestamp=weather_data['timestamp']
+            )
+
+            # Write weather condition identifiers
+            db.write_weather_point(
+                measurement="weather_condition",
+                tags=tags,
+                fields={
+                    "weather_id": weather_data.get("weather_id"),
+                    "weather_description": weather_data.get("weather_description"),
+                },
+                timestamp=weather_data['timestamp']
+            )
+            
+            # Coordinates rarely change for a location, so tags might be better
+            coord_tags = {
+                **tags,
+                "longitude": str(weather_data.get("longitude", "")),
+                "latitude": str(weather_data.get("latitude", ""))
+            }
+            db.write_weather_point(
+                measurement="location",
+                tags=coord_tags,
+                fields={},  # no fields, just tags
+                timestamp=weather_data['timestamp']
+            )
+            
+            logging.debug(f"Stored data in InfluxDB: timestamp='{weather_data['timestamp']}'")
         logging.info("Weather-data has been successfully stored in database.")
         return True
     except ApiException as _e:
         logging.error(f"Couldn't initialize database: {type(_e).__name__}: {_e}")
     except (ValueError, TypeError) as _e:
         logging.error(f"Invalid InfluxDB configuration: {type(_e).__name__}: {_e}")
+    except KeyError as _e:
+        logging.error(f"Missing weather-dataf: {type(_e).__name__}: {_e}")
     except Exception as _e:
         logging.error(f"An unexpected error occured while initializing InfluxDB: {type(_e).__name__}: {_e}")
         raise InfluxDBInitError("Failed to initialize InfluxDB") from _e
