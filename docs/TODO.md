@@ -1,4 +1,3 @@
 # ToDo
 
-- [ ] Implement InfluxDB-Support
-
+- [x] Implement InfluxDB as database-manager.
