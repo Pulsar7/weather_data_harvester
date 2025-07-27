@@ -8,7 +8,7 @@ A simple API-client that gets current weather-data from the `https://openweather
 ## Usage
 
 ```SHELL
-git clone 
+git clone https://github.com/Pulsar7/weather_data_harvester.git
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```
