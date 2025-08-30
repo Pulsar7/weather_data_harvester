@@ -12,7 +12,8 @@ from influxdb_client.rest import ApiException
 import src.utils as utils
 import src.http_handler as http_handler
 from src.db_handler import InfluxDBHandler
-from src.config import (TIMEZONE, OPENWEATHERMAP_API_URL)
+from src.config import (TIMEZONE, OPENWEATHERMAP_API_URL, 
+                        configure_logger)
 from src.custom_exceptions import (InfluxDBAddingError, 
                                    WeatherDataParsingError,
                                    OpenWeatherMapAPIError,
@@ -134,8 +135,8 @@ def add_data_to_db(weather_data:dict) -> None:
                 timestamp=weather_data['timestamp']
             )
             
-            logging.debug(f"Stored data in InfluxDB: timestamp='{weather_data['timestamp']}'")
-        logging.info("Weather-data has been successfully stored in database.")
+            logger.debug(f"Stored data in InfluxDB: timestamp='{weather_data['timestamp']}'")
+        logger.info("Weather-data has been successfully stored in database.")
     
     except ApiException as _e:
         raise InfluxDBAddingError("Communication error with the database!") from _e
@@ -151,35 +152,29 @@ def add_data_to_db(weather_data:dict) -> None:
 
 def main() -> None:
     _start:float = time.time()
-    logging.debug(f"Started at {_start}")
+    logger.debug(f"Started at {_start}")
     
     try:
         weather_data:dict = get_weather_data()
     except WeatherDataParsingError:
-        logging.exception("Couldn't get weather-data!")
-        logging.critical("Cannot operate without weather-data!")
+        logger.exception("Couldn't get weather-data!")
+        logger.critical("Cannot operate without weather-data!")
         sys.exit(1)
     
     try:
         add_data_to_db(weather_data)
     except InfluxDBAddingError:
-        logging.exception("Couldn't add weather-data to InfluxDB!")
+        logger.exception("Couldn't add weather-data to InfluxDB!")
     
     _delta:float = time.time() - _start
-    logging.debug(f"Closed. (Runtime={_delta} seconds)")
+    logger.debug(f"Closed. (Runtime={_delta} seconds)")
     
 
-if __name__ == '__main__':
+if __name__ == '__main__':    
     filename:str = os.path.basename(__file__)
     
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format='(%(asctime)s) %(levelname)s [%(threadName)s] %(name)s.%(funcName)s: %(message)s',
-        datefmt='%Y-%m-%dT%H:%M:%S'  # ISO8601-ish without timezone
-    )
-    
+    configure_logger()
     logger = logging.getLogger(__name__)
-    
-    logging.debug(f"Running from {filename}")
+    logger.debug(f"Running from {filename}")
     
     main()

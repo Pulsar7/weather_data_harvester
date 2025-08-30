@@ -1,4 +1,5 @@
-import os
+import os, sys
+import logging
 from dotenv import load_dotenv
 #
 from src.utils import get_absolute_dotenv_filepath
@@ -20,3 +21,24 @@ try:
 except (ValueError, TypeError):
     _req_timeout:int = 10
 REQUESTS_TIMEOUT:int = _req_timeout
+LOGGING_LEVEL:str = os.getenv('LOGGING_LEVEL', 'DEBUG')
+
+### Functions
+
+def configure_logger() -> None:
+    """
+    Configure logging module for this project.
+    """
+    # Prevent adding multiple handlers if this function is called multiple times
+    if logging.getLogger().handlers:
+        return
+    
+    handlers:list[logging.StreamHandler] = [logging.StreamHandler(sys.stdout)]  # stdout
+    
+    logging.basicConfig(
+        level=LOGGING_LEVEL.upper(),
+        format="(%(asctime)s) [%(levelname)s] %(name)s: %(message)s",
+        handlers=handlers
+    )
+    
+    
