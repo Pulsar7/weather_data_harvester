@@ -10,7 +10,9 @@ import time, logging
 from influxdb_client.rest import ApiException
 #
 import src.utils as utils
+import src.http_handler as http_handler
 from src.db_handler import InfluxDBHandler
+from src.config import (TIMEZONE, OPENWEATHERMAP_API_URL)
 from src.custom_exceptions import (InfluxDBAddingError, 
                                    WeatherDataParsingError,
                                    OpenWeatherMapAPIError,
@@ -24,34 +26,34 @@ def get_weather_data() -> dict:
         WeatherDataParsingError: If no weather-data could be gathered or on JSON parse failure.
     """
     try:
-        data:dict = utils.fetch_weather_data()
+        data:dict = http_handler.fetch_weather_data()
     except (OpenWeatherMapAPIError, WeatherDataParsingError, GetWeatherDataError) as _e:
         raise WeatherDataParsingError("Got no weather-data to work with!") from _e
     
-    timestamp:str = utils.get_current_timestamp()
+    timestamp:str = utils.get_current_timestamp(timezone=TIMEZONE)
     logging.debug(f"Current timestamp: {timestamp}")
     
     try:
         weather_data:dict = {
-            "country": data['sys']['country'],                              # country
-            "location_name": data['name'],                                  # location_name
-            "timestamp": timestamp,                                         # current string-timestamp
-            "longitude": data['coord']['lon'],                              # longitude
-            "latitude": data['coord']['lat'],                               # latitude
-            "weather_id": data['weather'][0]['id'],                         # weather_id
-            "weather_main_text": data['weather'][0]['main'],                # weather_main_text
-            "weather_description": data['weather'][0]['description'],       # weather_description
-            "temperature_real": float(data['main']['temp']),                # temperature_real
-            "temperature_feels_like": float(data['main']['feels_like']),    # temperature_feels_like
-            "temperature_min": float(data['main']['temp_min']),             # temperature_min
-            "temperature_max": float(data['main']['temp_max']),             # temperature_max
-            "pressure": data['main']['pressure'],                           # pressure
-            "humidity": int(data['main']['humidity']),                      # humidity
-            "sea_level": data['main']['sea_level'],                         # sea_level
-            "ground_level": data['main']['grnd_level'],                     # ground_level
-            "wind_speed": float(data['wind']['speed']),                     # wind_speed
-            "wind_degree": int(data['wind']['deg']),                        # wind_degree
-            "weather_data_src_url": utils.get_weather_data_source_url()     # source-url (domain)
+            "country": data['sys']['country'],                                                  # country
+            "location_name": data['name'],                                                      # location_name
+            "timestamp": timestamp,                                                             # current string-timestamp
+            "longitude": data['coord']['lon'],                                                  # longitude
+            "latitude": data['coord']['lat'],                                                   # latitude
+            "weather_id": data['weather'][0]['id'],                                             # weather_id
+            "weather_main_text": data['weather'][0]['main'],                                    # weather_main_text
+            "weather_description": data['weather'][0]['description'],                           # weather_description
+            "temperature_real": float(data['main']['temp']),                                    # temperature_real
+            "temperature_feels_like": float(data['main']['feels_like']),                        # temperature_feels_like
+            "temperature_min": float(data['main']['temp_min']),                                 # temperature_min
+            "temperature_max": float(data['main']['temp_max']),                                 # temperature_max
+            "pressure": data['main']['pressure'],                                               # pressure
+            "humidity": int(data['main']['humidity']),                                          # humidity
+            "sea_level": data['main']['sea_level'],                                             # sea_level
+            "ground_level": data['main']['grnd_level'],                                         # ground_level
+            "wind_speed": float(data['wind']['speed']),                                         # wind_speed
+            "wind_degree": int(data['wind']['deg']),                                            # wind_degree
+            "weather_data_src_url": utils.get_weather_data_source_url(OPENWEATHERMAP_API_URL)   # source-url (domain)
         }
         
     except (ValueError, TypeError) as _e:

@@ -1,7 +1,9 @@
 import os
 from dotenv import load_dotenv
+#
+from src.utils import get_absolute_dotenv_filepath
 
-load_dotenv(dotenv_path='./.env', override=True)
+load_dotenv(dotenv_path=get_absolute_dotenv_filepath(), override=True)
 
 ### Get variables
 INFLUX_DB_TOKEN:str|None = os.getenv('INFLUX_DB_TOKEN', '1337')
