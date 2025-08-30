@@ -5,6 +5,8 @@
 
 A simple API-client that gets current weather-data from the [openweathermap.org](https://openweathermap.org/)-API and stores it in an __InfluxDB__ time-series database.
 
+> ⚠️ Warning: Using `DEBUG` logging level will expose sensitive data, such as your OpenWeatherMap API key, in the logs!
+
 ## Usage
 
 ```SHELL
