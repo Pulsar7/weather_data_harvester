@@ -11,16 +11,22 @@ from influxdb_client.rest import ApiException
 #
 import src.utils as utils
 from src.db_handler import InfluxDBHandler
-from src.custom_exceptions import (InfluxDBAddingError, WeatherDataParsingError)
+from src.custom_exceptions import (InfluxDBAddingError, 
+                                   WeatherDataParsingError,
+                                   OpenWeatherMapAPIError,
+                                   GetWeatherDataError)
 
-def get_weather_data() -> dict|None:
+def get_weather_data() -> dict:
     """
     Get current weather data.
+    
+    Raises:
+        WeatherDataParsingError: If no weather-data could be gathered or on JSON parse failure.
     """
-    (data, status) = utils.get_weather_data()
-    if not status or not data:
-        logging.critical("No weather-data.")
-        return None
+    try:
+        data:dict = utils.fetch_weather_data()
+    except (OpenWeatherMapAPIError, WeatherDataParsingError, GetWeatherDataError) as _e:
+        raise WeatherDataParsingError("Got no weather-data to work with!") from _e
     
     timestamp:str = utils.get_current_timestamp()
     logging.debug(f"Current timestamp: {timestamp}")
@@ -49,7 +55,6 @@ def get_weather_data() -> dict|None:
         }
         
     except (ValueError, TypeError) as _e:
-        logging.exception("Parsing error!")
         raise WeatherDataParsingError("Weather-Data parsing error!") from _e
     
     return weather_data
@@ -170,6 +175,8 @@ if __name__ == '__main__':
         format='(%(asctime)s) %(levelname)s [%(threadName)s] %(name)s.%(funcName)s: %(message)s',
         datefmt='%Y-%m-%dT%H:%M:%S'  # ISO8601-ish without timezone
     )
+    
+    logger = logging.getLogger(__name__)
     
     logging.debug(f"Running from {filename}")
     
