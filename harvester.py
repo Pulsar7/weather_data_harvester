@@ -5,16 +5,18 @@
     # Python-Version: 3.10.12
 
 """
-import os
+import os, sys
 import time, logging
 from influxdb_client.rest import ApiException
 #
 import src.utils as utils
 from src.db_handler import InfluxDBHandler
-from src.custom_exceptions import InfluxDBInitError
+from src.custom_exceptions import (InfluxDBAddingError, WeatherDataParsingError)
 
 def get_weather_data() -> dict|None:
-    """Get current weather data."""
+    """
+    Get current weather data.
+    """
     (data, status) = utils.get_weather_data()
     if not status or not data:
         logging.critical("No weather-data.")
@@ -45,13 +47,14 @@ def get_weather_data() -> dict|None:
             "wind_degree": int(data['wind']['deg']),                        # wind_degree
             "weather_data_src_url": utils.get_weather_data_source_url()     # source-url (domain)
         }
+        
     except (ValueError, TypeError) as _e:
-        logging.error(f"Parsing error: {_e}")
-        return None
+        logging.exception("Parsing error!")
+        raise WeatherDataParsingError("Weather-Data parsing error!") from _e
     
     return weather_data
 
-def add_data_to_db(weather_data:dict) -> bool:
+def add_data_to_db(weather_data:dict) -> None:
     """Add weather-data to database."""
     try:
         with InfluxDBHandler() as db:
@@ -126,29 +129,34 @@ def add_data_to_db(weather_data:dict) -> bool:
             
             logging.debug(f"Stored data in InfluxDB: timestamp='{weather_data['timestamp']}'")
         logging.info("Weather-data has been successfully stored in database.")
-        return True
+    
     except ApiException as _e:
-        logging.error(f"Couldn't initialize database: {type(_e).__name__}: {_e}")
+        raise InfluxDBAddingError("Communication error with the database!") from _e
+    
     except (ValueError, TypeError) as _e:
-        logging.error(f"Invalid InfluxDB configuration: {type(_e).__name__}: {_e}")
+        raise InfluxDBAddingError("Invalid InfluxDB configuration!") from _e
+    
     except KeyError as _e:
-        logging.error(f"Missing weather-dataf: {type(_e).__name__}: {_e}")
+        raise InfluxDBAddingError("Missing weather-data-key!") from _e
+    
     except Exception as _e:
-        logging.error(f"An unexpected error occured while initializing InfluxDB: {type(_e).__name__}: {_e}")
-        raise InfluxDBInitError("Failed to initialize InfluxDB") from _e
-    return False
+        raise InfluxDBAddingError("An unexpected error occured while adding weather-data to InfluxDB") from _e
 
 def main() -> None:
     _start:float = time.time()
     logging.debug(f"Started at {_start}")
     
-    weather_data:dict|None = get_weather_data()
-    if not weather_data:
-        return
+    try:
+        weather_data:dict = get_weather_data()
+    except WeatherDataParsingError:
+        logging.exception("Couldn't get weather-data!")
+        logging.critical("Cannot operate without weather-data!")
+        sys.exit(1)
     
-    if not add_data_to_db(weather_data):
-        logging.critical("Couldn't add parsed weather-data to database!")
-        return
+    try:
+        add_data_to_db(weather_data)
+    except InfluxDBAddingError:
+        logging.exception("Couldn't add weather-data to InfluxDB!")
     
     _delta:float = time.time() - _start
     logging.debug(f"Closed. (Runtime={_delta} seconds)")

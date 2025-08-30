@@ -1,3 +1,7 @@
-class InfluxDBInitError(Exception):
-    """Custom exception for InfluxDB initialization errors."""
+class InfluxDBAddingError(Exception):
+    """Raise when weather-data couldn't be added to InfluxDB."""
+    pass
+
+class WeatherDataParsingError(Exception):
+    """Raise when weather-data couldn't be parsed."""
     pass
