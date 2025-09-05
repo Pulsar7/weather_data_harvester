@@ -1,3 +1,4 @@
+import re
 import os, sys
 import logging
 from dotenv import load_dotenv
@@ -25,6 +26,27 @@ LOGGING_LEVEL:str = os.getenv('LOGGING_LEVEL', 'DEBUG')
 
 ### Functions
 
+
+class ApiKeySanitizer(logging.Filter):
+    def filter(self, record) -> bool:
+        # Sanitize record.msg
+        if record.msg:
+            record.msg = re.sub(r"(appid=)[^&\s]+", r"\1[REDACTED]", str(record.msg))
+        
+        # Sanitize record.args, but only if they are strings
+        if record.args:
+            if isinstance(record.args, tuple):
+                new_args = []
+                for a in record.args:
+                    if isinstance(a, str):
+                        new_args.append(re.sub(r"(appid=)[^&\s]+", r"\1[REDACTED]", a))
+                    else:
+                        new_args.append(a)  # Keep numbers, etc. intact
+                record.args = tuple(new_args)
+            elif isinstance(record.args, str):
+                record.args = re.sub(r"(appid=)[^&\s]+", r"\1[REDACTED]", record.args)
+        return True
+    
 def configure_logger() -> None:
     """
     Configure logging module for this project.
@@ -32,6 +54,22 @@ def configure_logger() -> None:
     # Prevent adding multiple handlers if this function is called multiple times
     if logging.getLogger().handlers:
         return
+    
+    # Create filter instance
+    sanitizer = ApiKeySanitizer()
+
+    # List of loggers to sanitize
+    loggers_to_sanitize = ["urllib3.connectionpool", 
+                           "requests.packages.urllib3.connectionpool",
+                           "requests.packages.urllib3"]
+
+    for name in loggers_to_sanitize:
+        logger = logging.getLogger(name)
+        logger.addFilter(sanitizer)
+        logger.propagate = True
+        # Optional: lower verbosity if you want
+        #logger.setLevel(logging.DEBUG)
+
     
     handlers:list[logging.StreamHandler] = [logging.StreamHandler(sys.stdout)]  # stdout
     
