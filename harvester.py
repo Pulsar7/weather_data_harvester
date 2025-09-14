@@ -165,7 +165,8 @@ def main() -> None:
         add_data_to_db(weather_data)
     except InfluxDBAddingError:
         logger.exception("Couldn't add weather-data to InfluxDB!")
-    
+        sys.exit(1)
+
     _delta:float = time.time() - _start
     logger.debug(f"Closed. (Runtime={_delta} seconds)")
     
